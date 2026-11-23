@@ -1,0 +1,3 @@
+plan_type,scenario,hour,on_time_rate,p90_delivery_min
+flat,flat_28,19,0.864,36.4
+shaped,shaped_0.36,14,0.885,35.6

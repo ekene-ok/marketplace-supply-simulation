@@ -11,31 +11,15 @@ OUT.mkdir(exist_ok=True)
 HL = b.PROJECT["marketplace-supply-simulation"]
 SRC = "SimPy simulation, 30 days per schedule, about 630 orders a day; courier cost $22 an hour"
 
-# Chart 1: service vs courier hours
-s = pd.read_csv(RES / "scenario_summary.csv")
-fig, ax = b.chart(height=4.6, label_in=0.45, xaxis=True, right_in=0.75)
-for plan, col in [("flat", b.CONTEXT), ("shaped", HL)]:
-    d = s[s.plan_type == plan].sort_values("courier_hours_per_day")
-    ax.plot(d.courier_hours_per_day, d.on_time_rate * 100, color=col, linewidth=2.4)
-    end = d.iloc[-1]
-    ax.text(end.courier_hours_per_day + 6, end.on_time_rate * 100, "Flat" if plan == "flat" else "Shaped",
-            va="center", fontsize=b.VALUE, color=b.MUTED if plan == "flat" else HL)
-ax.axhline(90, color=b.HAIRLINE, linewidth=1)
-ax.text(535, 89.6, "90% target", ha="right", va="top", fontsize=9.5, color=b.MUTED)
-for sc, col, dy in [("shaped_0.36", HL, -0.5), ("flat_28", b.CONTEXT, -0.25)]:
-    r = s[s.scenario == sc].iloc[0]
-    ax.scatter([r.courier_hours_per_day], [r.on_time_rate * 100], s=40, color=col, zorder=3, linewidths=0)
-    ax.text(r.courier_hours_per_day + 5, r.on_time_rate * 100 + dy, f"{r.courier_hours_per_day:.0f} hrs, {r.on_time_rate:.0%}",
-            fontsize=9.5, color=b.INK if col == HL else b.MUTED, va="top")
-ax.set_ylim(64, 97)
-ax.set_xlim(150, 540)
-ax.set_xticks([200, 300, 400, 500])
-ax.set_xlabel("Courier hours per day", color=b.MUTED, fontsize=9.5)
-ax.set_yticks([70, 80, 90])
-ax.set_yticklabels(["70%", "80%", "90%"])
-b.line_axes(ax)
-b.titles(fig, "Past about 93% on time, extra couriers buy almost nothing",
-         "Share of deliveries within 35 minutes, by courier hours scheduled per day")
+# Chart 1: staffing to the rush costs far less per order for the same service
+s = pd.read_csv(RES / "scenario_summary.csv").set_index("scenario")
+flat, rush = s.loc["flat_28"], s.loc["shaped_0.39"]
+fig, ax = b.chart(height=3.5, label_in=1.75)
+b.hbar(ax, ["Same staff all day", "Staff to the rush"], [flat.courier_cost_per_order, rush.courier_cost_per_order], {1},
+       lambda v: f"${v:.2f}", HL)
+b.titles(fig, "Staffing couriers to the lunch and dinner rush cuts cost per order by 31%",
+         f"Courier cost per order. Both hit the service target; the rush schedule uses "
+         f"{rush.courier_hours_per_day:.0f} hours a day, not {flat.courier_hours_per_day:.0f}")
 b.credit(fig, SRC)
 b.save(fig, OUT / "01_service_vs_courier_hours.png")
 
@@ -59,7 +43,7 @@ ax.set_yticklabels(["80%", "90%"])
 ax.set_xlabel("Actual demand against forecast", color=b.MUTED, fontsize=9.5)
 b.line_axes(ax)
 b.titles(fig, "Nine percent more courier hours protect service if demand runs high",
-         "On-time rate in the worst hour of the day, when demand misses the forecast")
+         "Worst-hour on-time rate for two rush-based schedules, when demand misses the forecast")
 b.credit(fig, SRC)
 b.save(fig, OUT / "02_forecast_stress_test.png")
 

@@ -10,6 +10,8 @@ A new city is forecast to get about 630 orders a day, with a lunch peak around n
 
 ## The recommendation
 
+Two ways to schedule couriers are compared. A **flat** schedule keeps the same number of couriers online all day. A **shaped** schedule follows demand: more couriers at the lunch and dinner rush, fewer in quiet hours. Orders bunch up at mealtimes, so a flat schedule has to be big enough for the dinner peak and then pays couriers to wait around the rest of the day.
+
 **Schedule couriers to the demand curve, and plan on 255 courier hours a day: one step above the cheapest schedule that meets the target.**
 
 1. **Shape the schedule to demand.** It meets the target with 30% fewer courier hours than a flat schedule (255 against 364). That is about **$875,000 a year** for one mid-sized city at $22 per courier hour, and courier cost per order falls from $12.70 to $8.79
@@ -21,7 +23,7 @@ A new city is forecast to get about 630 orders a day, with a lunch peak around n
 
 ## Charts
 
-![Past about 93% on time, extra couriers buy almost nothing](charts/01_service_vs_courier_hours.png)
+![Staffing couriers to the lunch and dinner rush cuts cost per order by 31%](charts/01_service_vs_courier_hours.png)
 
 ![Nine percent more courier hours protect service if demand runs high](charts/02_forecast_stress_test.png)
 

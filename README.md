@@ -25,7 +25,7 @@ Two ways to schedule couriers are compared. A **flat** schedule keeps the same n
 
 ![Staffing couriers to the lunch and dinner rush cuts cost per order by 31%](charts/01_service_vs_courier_hours.png)
 
-![Nine percent more courier hours protect service if demand runs high](charts/02_forecast_stress_test.png)
+![A 9% buffer keeps deliveries on time when demand beats the forecast](charts/02_forecast_stress_test.png)
 
 ![Couriers should follow the lunch and dinner rush](charts/03_hourly_schedule.png)
 

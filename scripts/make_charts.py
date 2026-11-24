@@ -26,7 +26,7 @@ b.save(fig, OUT / "01_service_vs_courier_hours.png")
 # Chart 2: forecast stress test
 f = pd.read_csv(RES / "forecast_stress_test.csv")
 fig, ax = b.chart(height=4.6, label_in=0.45, xaxis=True, right_in=1.1)
-for sc, col, lbl in [("shaped_0.36", b.CONTEXT, "234 hours"), ("shaped_0.39", HL, "255 hours")]:
+for sc, col, lbl in [("shaped_0.36", b.CONTEXT, "No buffer\n234 hrs"), ("shaped_0.39", HL, "9% buffer\n255 hrs")]:
     d = f[f.scenario == sc].sort_values("demand_scale")
     x = (d.demand_scale - 1) * 100
     ax.plot(x, d.worst_hour_on_time_rate * 100, color=col, linewidth=2.4)
@@ -42,8 +42,8 @@ ax.set_yticks([80, 90])
 ax.set_yticklabels(["80%", "90%"])
 ax.set_xlabel("Actual demand against forecast", color=b.MUTED, fontsize=9.5)
 b.line_axes(ax)
-b.titles(fig, "Nine percent more courier hours protect service if demand runs high",
-         "Worst-hour on-time rate for two rush-based schedules, when demand misses the forecast")
+b.titles(fig, "A 9% buffer keeps deliveries on time when demand beats the forecast",
+         "On-time rate in the day's slowest hour, for the rush schedule with and without a buffer")
 b.credit(fig, SRC)
 b.save(fig, OUT / "02_forecast_stress_test.png")
 
@@ -57,7 +57,7 @@ fig, ax = b.chart(height=4.4, label_in=0.0, right_in=0.3, xaxis="ticks")
 b.vbar(ax, [f"{x % 12 or 12}{'am' if x < 12 else 'pm'}" for x in hours], couriers,
        {i for i, c in enumerate(couriers) if c > 28}, lambda v: f"{v}", HL)
 ax.axhline(28, color=b.HAIRLINE, linewidth=1)
-ax.text(len(hours) - 0.5, 28.8, "Flat: 28", ha="right", fontsize=9.5, color=b.MUTED)
+ax.text(len(hours) - 0.5, 28.8, "Same all day: 28", ha="right", fontsize=9.5, color=b.MUTED)
 ax.tick_params(axis="x", labelsize=9.5)
 b.titles(fig, "Couriers should follow the lunch and dinner rush",
          "Couriers online each hour in the recommended 255-hour schedule")

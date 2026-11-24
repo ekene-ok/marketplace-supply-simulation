@@ -1,71 +1,89 @@
-"""README charts: one message per chart, one highlight colour, direct labels."""
+"""README charts in the portfolio chart style: one message per chart, one highlight colour, direct labels."""
 from pathlib import Path
+import sys
 import pandas as pd
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+sys.path.insert(0, str(Path(__file__).parent))
+import brand_style as b
 
 ROOT = Path(__file__).resolve().parents[1]
 RES, OUT = ROOT / "results", ROOT / "charts"
 OUT.mkdir(exist_ok=True)
-SURFACE, INK, INK2 = "#ffffff", "#1a1a1a", "#6b6a66"
-HIGHLIGHT, CONTEXT = "#2f8a2f", "#d9d8d3"
-plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 11, "text.color": INK,
-                     "figure.facecolor": SURFACE, "axes.facecolor": SURFACE})
+HL = b.PROJECT["marketplace-supply-simulation"]
+SRC = "SimPy simulation, 30 days per schedule, about 630 orders a day; courier cost $22 an hour"
 
+# Chart 1: service vs courier hours ---------------------------------------------------------
+s = pd.read_csv(RES / "scenario_summary.csv")
+fig, ax = b.figure(8, 5)
+for plan, col, lw in [("flat", b.CONTEXT, 2.2), ("shaped", HL, 2.6)]:
+    d = s[s.plan_type == plan].sort_values("courier_hours_per_day")
+    ax.plot(d.courier_hours_per_day, d.on_time_rate * 100, color=col, linewidth=lw, marker="o", markersize=4)
+ax.axhline(90, color=b.HAIRLINE, linewidth=1)
+ax.text(530, 90.3, "Target: 90% on time", ha="right", va="bottom", fontsize=9.5, color=b.MUTED)
+pick = s[s.scenario == "shaped_0.36"].iloc[0]
+top = s[s.scenario == "shaped_0.45"].iloc[0]
+flat = s[s.scenario == "flat_28"].iloc[0]
+ax.annotate(f"{pick.courier_hours_per_day:.0f} hours: {pick.on_time_rate:.1%}", (pick.courier_hours_per_day, pick.on_time_rate * 100),
+            xytext=(10, -20), textcoords="offset points", ha="left", fontsize=10, color=b.INK)
+ax.annotate(f"{top.courier_hours_per_day:.0f} hours: {top.on_time_rate:.1%}", (top.courier_hours_per_day, top.on_time_rate * 100),
+            xytext=(0, 12), textcoords="offset points", ha="center", fontsize=10, color=b.INK)
+ax.text(372, 84.5, f"Flat schedule needs {flat.courier_hours_per_day:.0f} hours\nfor {flat.on_time_rate:.1%}", fontsize=9.5, color=b.MUTED)
+ax.text(188, 72, "Shaped to demand", fontsize=10, color=HL)
+ax.set_ylim(64, 97)
+ax.set_xlim(150, 535)
+ax.set_xlabel("Courier hours per day", color=b.MUTED, fontsize=10)
+ax.set_yticks([70, 80, 90])
+ax.set_yticklabels(["70%", "80%", "90%"])
+b.clean(ax, keep="x")
+b.headline(fig, "Past about 93% on time, extra couriers buy almost nothing",
+           "Share of deliveries within 35 minutes, by courier hours scheduled per day")
+b.source(fig, SRC)
+b.finish(fig, OUT / "01_service_vs_courier_hours.png", top=0.83, bottom=0.17, left=0.08)
 
-def titles(fig, title, subtitle):
-    fig.text(0.03, 0.97, title, fontsize=15, fontweight="bold", va="top")
-    fig.text(0.03, 0.885, subtitle, fontsize=10.5, color=INK2, va="top")
+# Chart 2: forecast stress test ---------------------------------------------------------------
+f = pd.read_csv(RES / "forecast_stress_test.csv")
+fig, ax = b.figure(8, 5)
+for sc, col, lw, lbl in [("shaped_0.36", b.CONTEXT, 2.2, "Planned on forecast: 234 hours"),
+                         ("shaped_0.39", HL, 2.6, "One step up: 255 hours")]:
+    d = f[f.scenario == sc].sort_values("demand_scale")
+    x = (d.demand_scale - 1) * 100
+    ax.plot(x, d.worst_hour_on_time_rate * 100, color=col, linewidth=lw, marker="o", markersize=4)
+    ax.text(x.iloc[-1] + 1.2, d.worst_hour_on_time_rate.iloc[-1] * 100, lbl, va="center", fontsize=10,
+            color=HL if col == HL else b.MUTED)
+ax.axhline(85, color=b.HAIRLINE, linewidth=1)
+ax.text(-20, 85.3, "Floor: 85% in every hour", va="bottom", fontsize=9.5, color=b.MUTED)
+ax.set_xlim(-22, 46)
+ax.set_xticks([-20, -10, 0, 10, 20])
+ax.set_xticklabels(["-20%", "-10%", "Forecast", "+10%", "+20%"])
+ax.set_ylim(76, 96)
+ax.set_yticks([80, 85, 90, 95])
+ax.set_yticklabels(["80%", "85%", "90%", "95%"])
+ax.set_xlabel("Actual demand compared with forecast", color=b.MUTED, fontsize=10)
+b.clean(ax, keep="x")
+b.headline(fig, "Nine percent more courier hours protect service if demand runs high",
+           "On-time rate in the worst hour of the day, when actual demand misses the forecast")
+b.source(fig, SRC)
+b.finish(fig, OUT / "02_forecast_stress_test.png", top=0.83, bottom=0.17, left=0.08)
 
-
-best = pd.read_csv(RES / "cheapest_plan_meeting_target.csv").set_index("plan_type")
-
-# Chart 1: courier hours needed to hit the same service target
-fig, ax = plt.subplots(figsize=(9, 3.9))
-vals = [best.loc["flat", "courier_hours_per_day"], best.loc["shaped", "courier_hours_per_day"]]
-labels = [f"Flat ({int(best.loc['flat', 'scenario'].split('_')[1])} all day)", "Shaped to demand"]
-ax.barh(labels, vals, height=0.5, color=[CONTEXT, HIGHLIGHT])
-ax.text(vals[0] + 6, 0, f"{vals[0]:.0f} hours  (${best.loc['flat', 'courier_cost_per_order']:.2f} per order)",
-        va="center", fontsize=11, color=INK2)
-ax.text(vals[1] + 6, 1, f"{vals[1]:.0f} hours  (${best.loc['shaped', 'courier_cost_per_order']:.2f} per order)",
-        va="center", fontsize=12, fontweight="bold")
-for lbl, c in zip(ax.get_yticklabels(), [INK2, INK]):
-    lbl.set_color(c)
-for s in ax.spines.values():
-    s.set_visible(False)
-ax.set_xticks([])
-ax.tick_params(axis="y", length=0, pad=8)
-ax.set_xlim(0, 640)
-cut = 1 - vals[1] / vals[0]
-titles(fig, f"Matching couriers to demand needs {cut:.0%} fewer courier hours",
-       "Courier hours per day to keep 90% of deliveries under 35 minutes, and at least 85%\n"
-       "in every hour. 30 simulated days per schedule, about 630 orders a day.")
-fig.subplots_adjust(left=0.22, right=0.97, top=0.66, bottom=0.05)
-fig.savefig(OUT / "01_courier_hours_needed.png", dpi=200)
-plt.close(fig)
-
-# Chart 2: the shaped schedule hour by hour
-h = pd.read_csv(RES / "hourly_service.csv")
-shaped = h[h["plan_type"] == "shaped"].sort_values("hour")
-flat_n = int(best.loc["flat", "scenario"].split("_")[1])
-fig, ax = plt.subplots(figsize=(9, 5.0))
-ax.bar(shaped["hour"], shaped["couriers"], width=0.65, color=HIGHLIGHT)
-for x, c in zip(shaped["hour"], shaped["couriers"]):
-    ax.text(x, c + 0.8, f"{c}", ha="center", fontsize=10, color=INK)
-ax.axhline(flat_n, color=INK2, linewidth=1.2, linestyle=(0, (4, 3)))
-ax.text(22.45, flat_n + 0.8, f"Flat schedule: {flat_n}", ha="right", fontsize=10, color=INK2)
-ax.set_xticks(shaped["hour"])
-ax.set_xticklabels([f"{x % 12 or 12}{'am' if x < 12 else 'pm'}" for x in shaped["hour"]])
-for s in ax.spines.values():
-    s.set_visible(False)
+# Chart 3: the buffered schedule hour by hour -------------------------------------------------
+from math import ceil
+sys.path.insert(0, str(ROOT))
+from sim.model import DEMAND, OPEN_HOUR, CLOSE_HOUR
+hours = list(range(OPEN_HOUR, CLOSE_HOUR))
+couriers = [max(6, ceil(DEMAND[h] * 0.39)) for h in hours]
+fig, ax = b.figure(8, 5)
+peak = max(couriers)
+ax.bar(hours, couriers, width=0.65, color=[HL if c == peak else b.CONTEXT for c in couriers])
+for x, c in zip(hours, couriers):
+    ax.text(x, c + 0.6, f"{c}", ha="center", fontsize=10, color=b.INK if c == peak else b.MUTED)
+ax.axhline(28, color=b.HAIRLINE, linewidth=1)
+ax.text(15, 28.6, "Flat schedule: 28 all day", ha="center", fontsize=9.5, color=b.MUTED)
+ax.set_xticks(hours)
+ax.set_xticklabels([f"{x % 12 or 12}{'am' if x < 12 else 'pm'}" for x in hours])
 ax.set_yticks([])
-ax.tick_params(axis="x", length=0, labelsize=10)
-ax.set_ylim(0, 44)
-titles(fig, "Couriers should follow the lunch and dinner rush",
-       "Couriers online per hour in the shaped schedule (minimum of 6), against a flat 28.\n"
-       "Every hour stays at 88% on time or better.")
-fig.subplots_adjust(left=0.03, right=0.97, top=0.75, bottom=0.08)
-fig.savefig(OUT / "02_hourly_schedule.png", dpi=200)
-plt.close(fig)
-print("Charts saved to charts/")
+ax.set_ylim(0, 46)
+b.clean(ax, keep="x")
+b.headline(fig, "Couriers should follow the lunch and dinner rush",
+           "Couriers online each hour in the recommended schedule (255 hours a day, minimum of 6)")
+b.source(fig, SRC)
+b.finish(fig, OUT / "03_hourly_schedule.png", top=0.83, bottom=0.12, left=0.04)
+print("charts saved")
